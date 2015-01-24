@@ -1,3 +1,8 @@
+/* Lua 5.3 support -batrick */
+
+#define luaL_checkint luaL_checkinteger
+/* I also changed below: "#if (LUA_VERSION_NUM >= 502)" to >=. */
+
 /*
 ** $Id: lptypes.h,v 1.8 2013/04/12 16:26:38 roberto Exp $
 ** LPeg - PEG pattern matching for Lua
@@ -29,7 +34,7 @@
 /*
 ** compatibility with Lua 5.2
 */
-#if (LUA_VERSION_NUM == 502)
+#if (LUA_VERSION_NUM >= 502)
 
 #undef lua_equal
 #define lua_equal(L,idx1,idx2)  lua_compare(L,(idx1),(idx2),LUA_OPEQ)
