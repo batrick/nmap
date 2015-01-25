@@ -14,7 +14,6 @@
 #include "nse_fs.h"
 #include "nse_nsock.h"
 #include "nse_nmaplib.h"
-#include "nse_bit.h"
 #include "nse_binlib.h"
 #include "nse_pcrelib.h"
 #include "nse_openssl.h"
