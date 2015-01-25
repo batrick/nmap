@@ -88,3 +88,5 @@ end
 function mod(a, b)
     return a % b
 end
+
+return _ENV
