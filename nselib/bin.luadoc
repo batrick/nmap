@@ -1,6 +1,8 @@
 ---
 -- Pack and unpack binary data.
 --
+-- THIS LIBRARY IS DEPRECATED! Please use builtin Lua 5.3 string.pack facilities.
+--
 -- A problem script authors often face is the necessity of encoding values
 -- into binary data. For example after analyzing a protocol the starting
 -- point to write a script could be a hex dump, which serves as a preamble
