@@ -134,7 +134,7 @@ do -- Add loader to look in nselib/?.lua (nselib/ can be in multiple places)
     local name = "nselib/"..lib..".lua";
     local type, path = cnse.fetchfile_absolute(name);
     if type == "file" then
-      return loadfile(path);
+      return assert(loadfile(path));
     else
       return "\n\tNSE failed to find "..name.." in search paths.";
     end
