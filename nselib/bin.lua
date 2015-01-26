@@ -121,7 +121,7 @@ end
 -- @return Position in the data string where unpacking stopped.
 -- @return All unpacked values.
 function unpack (format, data, init)
-    fmt
+    format = format:gsub("(%a)(%d*)", translate)
     return unpacker(fmt:unpack(s, init))
 end
 
