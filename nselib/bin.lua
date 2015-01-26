@@ -40,8 +40,47 @@
 -- Note that the endian operators work as modifiers to all the
 -- characters following them in the format string.
 
-module "bin"
+local _ENV = {}
 
+local function translate (o, n)
+    n = #n == 0 and 1 or tonumber(n)
+    -- N.B. "A, B, or H, in which cases the number tells unpack how many bytes to read"
+    if o == "H" then
+        -- hex string
+        -- FIXME we will need to change things so that 'H' becomes ('B'):rep(n) where n is #arg/2
+    elseif o == "B" then
+        -- bit string
+        -- FIXME what is a "bit" string??
+    elseif o == "p" then
+        return ("s1"):rep(n)
+    elseif o == "P" then
+        return ("s2"):rep(n)
+    elseif o == "a" then
+        return ("s4"):rep(n)
+    elseif o == "A" then
+        -- an unterminated string
+        -- FIXME we will need to change this to cn where n is the length of its argument
+        return ("z"):rep(n)
+    elseif o == "c" then
+        return ("b"):rep(n)
+    elseif o == "C" then
+        return ("B"):rep(n)
+    elseif o == "s" then
+        return ("i2"):rep(n)
+    elseif o == "S" then
+        return ("I2"):rep(n)
+    elseif o == "i" then
+        return ("i4"):rep(n)
+    elseif o == "I" then
+        return ("I4"):rep(n)
+    elseif o == "l" then
+        return ("i8"):rep(n)
+    elseif o == "L" then
+        return ("I8"):rep(n)
+    else
+        return o:rep(n)
+    end
+end
 
 --- Returns a binary packed string.
 --
@@ -55,8 +94,16 @@ module "bin"
 -- @param format Format string, used to pack following arguments.
 -- @param ... The values to pack.
 -- @return String containing packed data.
-function pack(format, ...)
+function pack (format, ...)
+    format = format:gsub("(%a)(%d*)", translate)
+    return format:pack(...)
+end
 
+local function unpacker (...)
+    -- Lua's unpack gives the stop index last:
+    local list = table.pack(...)
+    return list[list.n], table.unpack(list, 1, list.n-1)
+end
 
 --- Returns values read from the binary packed data string.
 --
@@ -73,5 +120,9 @@ function pack(format, ...)
 -- @param init Optional starting position within the string.
 -- @return Position in the data string where unpacking stopped.
 -- @return All unpacked values.
-function unpack(format, data, init)
+function unpack (format, data, init)
+    fmt
+    return unpacker(fmt:unpack(s, init))
+end
 
+return _ENV
