@@ -5,6 +5,8 @@
 --
 -- @copyright BSD License
 
+local select = select
+
 local mininteger = require "math".mininteger
 
 local _ENV = {}
