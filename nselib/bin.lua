@@ -40,47 +40,18 @@
 -- Note that the endian operators work as modifiers to all the
 -- characters following them in the format string.
 
-local _ENV = {}
+local assert = assert
+local ipairs = ipairs
+local tonumber = tonumber
 
-local function translate (o, n)
-    n = #n == 0 and 1 or tonumber(n)
-    -- N.B. "A, B, or H, in which cases the number tells unpack how many bytes to read"
-    if o == "H" then
-        -- hex string
-        -- FIXME we will need to change things so that 'H' becomes ('B'):rep(n) where n is #arg/2
-    elseif o == "B" then
-        -- bit string
-        -- FIXME what is a "bit" string??
-    elseif o == "p" then
-        return ("s1"):rep(n)
-    elseif o == "P" then
-        return ("s2"):rep(n)
-    elseif o == "a" then
-        return ("s4"):rep(n)
-    elseif o == "A" then
-        -- an unterminated string
-        -- FIXME we will need to change this to cn where n is the length of its argument
-        return ("z"):rep(n)
-    elseif o == "c" then
-        return ("b"):rep(n)
-    elseif o == "C" then
-        return ("B"):rep(n)
-    elseif o == "s" then
-        return ("i2"):rep(n)
-    elseif o == "S" then
-        return ("I2"):rep(n)
-    elseif o == "i" then
-        return ("i4"):rep(n)
-    elseif o == "I" then
-        return ("I4"):rep(n)
-    elseif o == "l" then
-        return ("i8"):rep(n)
-    elseif o == "L" then
-        return ("I8"):rep(n)
-    else
-        return o:rep(n)
-    end
-end
+local char = require "string".char
+
+local insert = require "table".insert
+local move = require "table".move
+local pack = require "table".pack
+local unpack = require "table".unpack
+
+local _ENV = {}
 
 --- Returns a binary packed string.
 --
@@ -94,15 +65,93 @@ end
 -- @param format Format string, used to pack following arguments.
 -- @param ... The values to pack.
 -- @return String containing packed data.
-function pack (format, ...)
-    format = format:gsub("(%a)(%d*)", translate)
-    return format:pack(...)
+function _ENV.pack (format, ...)
+    format = "!1="..format -- 1 byte alignment
+    local endianness = "="
+    local i, args = 0, pack(...)
+    local function translate (o, n)
+        if o == "=" or o == "<" or o == ">" then
+            endianness = o
+            return o
+        end
+        i = i + 1
+        n = #n == 0 and 1 or tonumber(n)
+        if o == "H" then
+            -- hex string
+            -- N.B. n is the reptition
+            -- FIXME native not big?
+            assert(n > 0, "n cannot be 0") -- original bin library allowed this, it doesn't make sense
+            local new = ">" -- !! in original bin library, hex strings are always big endian...
+            for j = i, i+n-1 do
+                args[j] = args[j]:gsub("(%x%x?)", function (s) return char(tonumber(s, 16)) end)
+                new = new .. ("c%d"):format(#args[j])
+            end
+            new = new .. endianness -- restore old endianness
+            return new
+        elseif o == "B" then
+            -- bit string
+            -- N.B. n is the reptition
+            -- This needs to be removed, it doesn't even work:
+            -- print(bin.unpack(">B", bin.pack(">B", "0101"))) --> "01010000"
+            error "FIXME"
+        elseif o == "p" then
+            return ("s1"):rep(n)
+        elseif o == "P" then
+            return ("s2"):rep(n)
+        elseif o == "a" then
+            return ("s4"):rep(n)
+        elseif o == "A" then
+            -- an unterminated string
+            -- N.B. n is the reptition
+            assert(n > 0, "n cannot be 0") -- original bin library allowed this, it doesn't make sense
+            local new = ""
+            for j = i, i+n-1 do
+                new = new .. ("c%d"):format(#args[j])
+            end
+            return new
+        elseif o == "c" then
+            return ("b"):rep(n)
+        elseif o == "C" then
+            return ("B"):rep(n)
+        elseif o == "s" then
+            return ("i2"):rep(n)
+        elseif o == "S" then
+            return ("I2"):rep(n)
+        elseif o == "i" then
+            return ("i4"):rep(n)
+        elseif o == "I" then
+            return ("I4"):rep(n)
+        elseif o == "l" then
+            return ("i8"):rep(n)
+        elseif o == "L" then
+            return ("I8"):rep(n)
+        else
+            return o:rep(n)
+        end
+    end
+    format = format:gsub("([%a=<>])(%d*)", translate)
+    return format:pack(unpack(args))
 end
 
-local function unpacker (...)
+do
+    -- !! endianness is always big endian for H !!
+    assert(_ENV.pack(">H", "415D615A") == "\x41\x5D\x61\x5A")
+    assert(_ENV.pack("<H", "415D615A") == "\x41\x5D\x61\x5A")
+    assert(_ENV.pack("H2", "415D615A", "A5") == "\x41\x5D\x61\x5A\xA5")
+
+    assert(_ENV.pack("A", "415D615A") == "415D615A")
+    --assert(_ENV.pack("A0", "415D615A") == "")
+    assert(_ENV.pack("A1", "415D615A", "foo", "bar") == "415D615A")
+    assert(_ENV.pack("A2", "415D615A", "foo", "bar") == "415D615Afoo")
+end
+
+local function unpacker (hex_fix, ...)
     -- Lua's unpack gives the stop index last:
-    local list = table.pack(...)
-    return list[list.n], table.unpack(list, 1, list.n-1)
+    local list = pack(...)
+    for i, v in ipairs(hex_fix) do
+        list[v] = list[v]:gsub(".", function (c) return ("%02X"):format(c:byte()) end)
+    end
+    return list[list.n], unpack(list, 1, list.n-1)
 end
 
 --- Returns values read from the binary packed data string.
@@ -120,9 +169,94 @@ end
 -- @param init Optional starting position within the string.
 -- @return Position in the data string where unpacking stopped.
 -- @return All unpacked values.
-function unpack (format, data, init)
-    format = format:gsub("(%a)(%d*)", translate)
-    return unpacker(fmt:unpack(s, init))
+function _ENV.unpack (format, data, init)
+    format = "!1="..format -- 1 byte alignment
+    local endianness = "="
+    local hex_fix = {}
+    local i = 0
+    local function translate (o, n)
+        i = i + 1
+        n = #n == 0 and 1 or tonumber(n)
+        if o == "=" then
+            endianness = "="
+        elseif o == "<" then
+            endianness = "<"
+        elseif o == ">" then
+            endianness = ">"
+        elseif o == "H" then
+            -- hex string
+            -- N.B. n is the number of bytes to read
+            insert(hex_fix, i)
+            return (">c%d%s"):format(n, endianness) -- !! in original bin library, hex strings are always big endian...
+        elseif o == "B" then
+            -- bit string
+            -- N.B. n is the number of bytes to read
+            -- This needs to be removed, it doesn't even work:
+            -- print(bin.unpack(">B", bin.pack(">B", "0101"))) --> "01010000"
+            error "FIXME"
+        elseif o == "p" then
+            return ("s1"):rep(n)
+        elseif o == "P" then
+            return ("s2"):rep(n)
+        elseif o == "a" then
+            return ("s4"):rep(n)
+        elseif o == "A" then
+            -- an unterminated string
+            -- N.B. n is the number of bytes to read
+            return ("c%d"):format(n)
+        elseif o == "c" then
+            return ("b"):rep(n)
+        elseif o == "C" then
+            return ("B"):rep(n)
+        elseif o == "s" then
+            return ("i2"):rep(n)
+        elseif o == "S" then
+            return ("I2"):rep(n)
+        elseif o == "i" then
+            return ("i4"):rep(n)
+        elseif o == "I" then
+            return ("I4"):rep(n)
+        elseif o == "l" then
+            return ("i8"):rep(n)
+        elseif o == "L" then
+            return ("I8"):rep(n)
+        else
+            return o:rep(n)
+        end
+    end
+    format = format:gsub("([%a=<>])(%d*)", translate)
+    return unpacker(hex_fix, format:unpack(data, init))
+end
+
+do
+    local i, v
+
+    -- !! endianness is always big endian for H !!
+    i, v = _ENV.unpack("H", "\x00\xff\x0f\xf0")
+    assert(i == 2 and v == "00")
+    i, v = _ENV.unpack("H0", "\x00\xff\x0f\xf0")
+    assert(i == 1 and v == "")
+    i, v = _ENV.unpack("H1", "\x00\xff\x0f\xf0")
+    assert(i == 2 and v == "00")
+    i, v = _ENV.unpack("H2", "\x00\xff\x0f\xf0")
+    assert(i == 3 and v == "00FF")
+    i, v = _ENV.unpack("<H4", "\x00\xff\x0f\xf0")
+    assert(i == 5 and v == "00FF0FF0")
+    i, v = _ENV.unpack(">H4", "\x00\xff\x0f\xf0")
+    assert(i == 5 and v == "00FF0FF0")
+
+    i, v = _ENV.unpack("A", "foo");
+    assert(i == 2 and v == "f")
+    i, v = _ENV.unpack("A0", "foo");
+    assert(i == 1 and v == "")
+    i, v = _ENV.unpack("A1", "foo");
+    assert(i == 2 and v == "f")
+    i, v = _ENV.unpack("A2", "foo");
+    assert(i == 3 and v == "fo")
+    i, v = _ENV.unpack("A3", "foo");
+    assert(i == 4 and v == "foo")
+    i, v = _ENV.unpack("A4", "foo");
+    assert(i == 1 and v == nil)
 end
 
 return _ENV
