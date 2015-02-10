@@ -484,7 +484,7 @@ local function find_password_case(hostinfo, username, password)
   end
 
   -- Figure out how many possibilities exist
-  local max = math.pow(2, #password) - 1
+  local max = 2^#password - 1
 
   -- Create an array of them, starting with all the values whose binary representation has no ones, then one one, then two ones, etc.
   local ordered = {}
