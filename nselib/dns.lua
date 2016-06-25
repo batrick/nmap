@@ -1284,19 +1284,19 @@ end
 -- @return Table representing flags.
 local function decodeFlags(flags)
   local tflags = {}
-  if (flags & 0x8000) ~= 0 then flags.QR  = true end
-  if (flags & 0x4000) ~= 0 then flags.OC1 = true end
-  if (flags & 0x2000) ~= 0 then flags.OC2 = true end
-  if (flags & 0x1000) ~= 0 then flags.OC3 = true end
-  if (flags & 0x0800) ~= 0 then flags.OC4 = true end
-  if (flags & 0x0400) ~= 0 then flags.AA  = true end
-  if (flags & 0x0200) ~= 0 then flags.TC  = true end
-  if (flags & 0x0100) ~= 0 then flags.RD  = true end
-  if (flags & 0x0080) ~= 0 then flags.RA  = true end
-  if (flags & 0x0008) ~= 0 then flags.RC1 = true end
-  if (flags & 0x0004) ~= 0 then flags.RC2 = true end
-  if (flags & 0x0002) ~= 0 then flags.RC3 = true end
-  if (flags & 0x0001) ~= 0 then flags.RC4 = true end
+  if (flags & 0x8000) ~= 0 then tflags.QR  = true end
+  if (flags & 0x4000) ~= 0 then tflags.OC1 = true end
+  if (flags & 0x2000) ~= 0 then tflags.OC2 = true end
+  if (flags & 0x1000) ~= 0 then tflags.OC3 = true end
+  if (flags & 0x0800) ~= 0 then tflags.OC4 = true end
+  if (flags & 0x0400) ~= 0 then tflags.AA  = true end
+  if (flags & 0x0200) ~= 0 then tflags.TC  = true end
+  if (flags & 0x0100) ~= 0 then tflags.RD  = true end
+  if (flags & 0x0080) ~= 0 then tflags.RA  = true end
+  if (flags & 0x0008) ~= 0 then tflags.RC1 = true end
+  if (flags & 0x0004) ~= 0 then tflags.RC2 = true end
+  if (flags & 0x0002) ~= 0 then tflags.RC3 = true end
+  if (flags & 0x0001) ~= 0 then tflags.RC4 = true end
   return tflags
 end
 
@@ -1319,7 +1319,8 @@ function decode(data)
   -- the flags are enough for the current code to determine whether an update was successful or not
   --
   local flags = encodeFlags(pkt.flags)
-  if (flags & 0xA000) ~= 0 then
+  -- QR, OC2
+  if (flags & 0xF000) == 0xA000 then
     return pkt
   else
     pos, pkt.questions = decodeQuestions(data, cnt.q, pos)
