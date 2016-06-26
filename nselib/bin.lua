@@ -47,6 +47,7 @@ local ipairs = ipairs
 local pcall=pcall
 local select=select
 local tonumber = tonumber
+local tostring = tostring
 local type = type
 
 local char = require "string".char
@@ -89,7 +90,7 @@ function _ENV.pack (format, ...)
             assert(n > 0, "n cannot be 0") -- original bin library allowed this, it doesn't make sense
             local new = "=" -- !! in original bin library, hex strings are always native
             for j = i, i+n-1 do
-                args[j] = args[j]:gsub("(%x%x?)", function (s) return char(tonumber(s, 16)) end)
+                args[j] = tostring(args[j]):gsub("(%x%x?)", function (s) return char(tonumber(s, 16)) end)
                 new = new .. ("c%d"):format(#args[j])
             end
             new = new .. endianness -- restore old endianness
@@ -155,6 +156,8 @@ do
 
     assert(_ENV.pack(">xSSISA",  0x0, 0x0, 0x0, 0x0, "1"))
     assert(_ENV.pack("x2") == "\x00\x00")
+
+    assert(_ENV.pack(">IzzzzH", 1, "user", "joe", "database", "db", 0) == "\0\0\0\1user\0joe\0database\0db\0\0")
 end
 
 local function unpacker (fixer, status, ...)
