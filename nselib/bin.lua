@@ -76,13 +76,12 @@ local _ENV = {}
 function _ENV.pack (format, ...)
     format = "!1="..format -- 1 byte alignment
     local endianness = "="
-    local i, args = 0, pack(...)
+    local i, args = 1, pack(...)
     local function translate (o, n)
         if o == "=" or o == "<" or o == ">" then
             endianness = o
             return o
         end
-        i = i + 1
         n = #n == 0 and 1 or tonumber(n)
         if o == "H" then
             -- hex string
@@ -94,16 +93,20 @@ function _ENV.pack (format, ...)
                 new = new .. ("c%d"):format(#args[j])
             end
             new = new .. endianness -- restore old endianness
+            i = i + n
             return new
         elseif o == "B" then
             -- bit string
             -- N.B. n is the reptition
             error "pack option \"B\" is no longer supported"
         elseif o == "p" then
+            i = i + n
             return ("s1"):rep(n)
         elseif o == "P" then
+            i = i + n
             return ("s2"):rep(n)
         elseif o == "a" then
+            i = i + n
             return ("s4"):rep(n)
         elseif o == "A" then
             -- an unterminated string
@@ -113,29 +116,37 @@ function _ENV.pack (format, ...)
             for j = i, i+n-1 do
                 new = new .. ("c%d"):format(#args[j])
             end
+            i = i + n
             return new
         elseif o == "c" then
+            i = i + n
             return ("b"):rep(n)
         elseif o == "C" then
+            i = i + n
             return ("B"):rep(n)
         elseif o == "s" then
+            i = i + n
             return ("i2"):rep(n)
         elseif o == "S" then
+            i = i + n
             return ("I2"):rep(n)
         elseif o == "i" then
+            i = i + n
             return ("i4"):rep(n)
         elseif o == "I" then
+            i = i + n
             return ("I4"):rep(n)
         elseif o == "l" then
+            i = i + n
             return ("i8"):rep(n)
         elseif o == "L" then
+            i = i + n
             return ("I8"):rep(n)
-        elseif o == "x" then
-            for j = i, i+n-1 do
-                insert(args, j, 0)
-            end
-            return ("B"):rep(n)
         else
+            -- 1-to-1 with Lua 5.3 string.pack
+            if o ~= "x" then
+                i = i + n
+            end
             return o:rep(n)
         end
     end
@@ -158,6 +169,13 @@ do
     assert(_ENV.pack("x2") == "\x00\x00")
 
     assert(_ENV.pack(">IzzzzH", 1, "user", "joe", "database", "db", 0) == "\0\0\0\1user\0joe\0database\0db\0\0")
+
+    assert(_ENV.pack("cccc", 1, 2, 3, 4) == "\x01\x02\x03\x04")
+    assert(_ENV.pack("c2c2", 1, 2, 3, 4) == "\x01\x02\x03\x04")
+    assert(_ENV.pack("c3c1", 1, 2, 3, 4) == "\x01\x02\x03\x04")
+    assert(_ENV.pack("c1c3", 1, 2, 3, 4) == "\x01\x02\x03\x04")
+    assert(_ENV.pack("xc3", 2, 3, 4) == "\x00\x02\x03\x04")
+    assert(_ENV.pack("c2x2", 2, 3, 4) == "\x02\x03\x00\x00")
 end
 
 local function unpacker (fixer, status, ...)
