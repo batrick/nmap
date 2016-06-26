@@ -49,6 +49,8 @@ local tonumber = tonumber
 local tostring = tostring
 local type = type
 
+local tointeger = require "math".tointeger
+
 local char = require "string".char
 
 local insert = require "table".insert
@@ -59,6 +61,17 @@ local unpack = require "table".unpack
 local tobinary = require "stdnse".tobinary
 
 local _ENV = {}
+
+local function clamp (args, i, j, mask)
+    for i = i, j do
+        local o = assert(tointeger(args[i]))
+        local n = o & mask
+        if o ~= n then
+            debug2("bin.pack: clamping arg[%d]: 0x%x -> 0x%x", i, o, n)
+        end
+        args[i] = n
+    end
+end
 
 --- Returns a binary packed string.
 --
@@ -81,7 +94,7 @@ function _ENV.pack (format, ...)
             endianness = o
             return o
         end
-        n = #n == 0 and 1 or tonumber(n)
+        n = #n == 0 and 1 or tointeger(n)
         if o == "H" then
             -- hex string
             -- N.B. n is the reptition
@@ -118,27 +131,35 @@ function _ENV.pack (format, ...)
             i = i + n
             return new
         elseif o == "c" then
+            clamp(args, i, i+n-1, 0xff)
             i = i + n
             return ("b"):rep(n)
         elseif o == "C" then
+            clamp(args, i, i+n-1, 0xff)
             i = i + n
             return ("B"):rep(n)
         elseif o == "s" then
+            clamp(args, i, i+n-1, 0xffff)
             i = i + n
             return ("i2"):rep(n)
         elseif o == "S" then
+            clamp(args, i, i+n-1, 0xffff)
             i = i + n
             return ("I2"):rep(n)
         elseif o == "i" then
+            clamp(args, i, i+n-1, 0xffffffff)
             i = i + n
             return ("i4"):rep(n)
         elseif o == "I" then
+            clamp(args, i, i+n-1, 0xffffffff)
             i = i + n
             return ("I4"):rep(n)
         elseif o == "l" then
+            clamp(args, i, i+n-1, 0xffffffffffffffff)
             i = i + n
             return ("i8"):rep(n)
         elseif o == "L" then
+            clamp(args, i, i+n-1, 0xffffffffffffffff)
             i = i + n
             return ("I8"):rep(n)
         else
@@ -150,6 +171,7 @@ function _ENV.pack (format, ...)
         end
     end
     format = format:gsub("([%a=<>])(%d*)", translate)
+    debug2("format = '%s'", format)
     return format.pack(format, unpack(args)) -- don't use method syntax for better error message
 end
 
@@ -175,6 +197,8 @@ do
     assert(_ENV.pack("c1c3", 1, 2, 3, 4) == "\x01\x02\x03\x04")
     assert(_ENV.pack("xc3", 2, 3, 4) == "\x00\x02\x03\x04")
     assert(_ENV.pack("c2x2", 2, 3, 4) == "\x02\x03\x00\x00")
+
+    assert(_ENV.pack("C2SIL", 0x123, 0xfff1, 0x1ffff, 0x112345678, 0x1234567812345678) == "\x23\xf1\xff\xff\x78\x56\x34\x12\x78\x56\x34\x12\x78\x56\x34\x12")
 end
 
 local function unpacker (fixer, status, ...)
@@ -216,7 +240,7 @@ function _ENV.unpack (format, data, init)
     local fixer = {}
     local i = 0
     local function translate (o, n)
-        n = #n == 0 and 1 or tonumber(n)
+        n = #n == 0 and 1 or tointeger(n)
         debug2("%d: %s:%d", i, o, n);
 
         if o == "=" then
