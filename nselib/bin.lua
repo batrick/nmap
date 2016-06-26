@@ -6,10 +6,10 @@
 -- A problem script authors often face is the necessity of encoding values
 -- into binary data. For example after analyzing a protocol the starting
 -- point to write a script could be a hex dump, which serves as a preamble
--- to every sent packet. Although it is possible to work with the
--- functionality Lua provides, it's not very convenient. Therefore NSE includes
--- Binlib, based on lpack (http://www.tecgraf.puc-rio.br/~lhf/ftp/lua/)
--- by Luiz Henrique de Figueiredo.
+-- to every sent packet. Prior to Lua 5.3, NSE included a bin library, based on lpack
+-- (http://www.tecgraf.puc-rio.br/~lhf/ftp/lua/) by Luiz Henrique de Figueiredo.
+-- This library is now reimplemented using Lua 5.3 string.pack facilities. New scripts and libraries
+-- should adopt Lua 5.3's native string.pack.
 --
 -- The Binlib functions take a format string to encode and decode binary
 -- data. Packing and unpacking are controlled by the following operator
