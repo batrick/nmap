@@ -47,6 +47,7 @@ local ipairs = ipairs
 local pcall=pcall
 local select=select
 local tonumber = tonumber
+local type = type
 
 local char = require "string".char
 
@@ -182,7 +183,7 @@ end
 function _ENV.unpack (format, data, init)
     debug2("format = '%s'", format);
     format = "!1="..format -- 1 byte alignment
-    if init <= 0 then init = 1 end
+    if type(init) == "number" and init <= 0 then init = 1 end
     local endianness = "="
     local fixer = {}
     local i = 0
