@@ -111,9 +111,11 @@ end
 function dec (e)
     local out = {}
     local i = 1
-    local m = #e % 4
     local done = false
 
+    e = e:gsub("%s+", "")
+
+    local m = #e % 4
     if m ~= 0 then
         error "invalid encoding: input is not divisible by 4"
     end
@@ -162,6 +164,9 @@ do
     for i = 1, 255 do
         test(char(i), enc(char(i)))
     end
+
+    -- whitespace stripping
+    assert(dec(" AAEC A\r\nw==") == "\x00\x01\x02\x03")
 
     -- extensive tests
     if false then
