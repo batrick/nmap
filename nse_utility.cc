@@ -45,6 +45,13 @@ void nseU_setnfield (lua_State *L, int idx, const char *field, lua_Number n)
   lua_setfield(L, idx, field);
 }
 
+void nseU_setifield (lua_State *L, int idx, const char *field, lua_Integer i)
+{
+  idx = lua_absindex(L, idx);
+  lua_pushinteger(L, i);
+  lua_setfield(L, idx, field);
+}
+
 void nseU_setbfield (lua_State *L, int idx, const char *field, int b)
 {
   idx = lua_absindex(L, idx);
