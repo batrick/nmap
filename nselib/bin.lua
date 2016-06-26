@@ -140,7 +140,7 @@ function _ENV.pack (format, ...)
         end
     end
     format = format:gsub("([%a=<>])(%d*)", translate)
-    return format:pack(unpack(args))
+    return format.pack(format, unpack(args)) -- don't use method syntax for better error message
 end
 
 do
