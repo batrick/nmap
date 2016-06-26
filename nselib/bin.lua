@@ -129,6 +129,11 @@ function _ENV.pack (format, ...)
             return ("i8"):rep(n)
         elseif o == "L" then
             return ("I8"):rep(n)
+        elseif o == "x" then
+            for j = i, i+n-1 do
+                insert(args, j, 0)
+            end
+            return ("B"):rep(n)
         else
             return o:rep(n)
         end
@@ -147,6 +152,9 @@ do
     --assert(_ENV.pack("A0", "415D615A") == "")
     assert(_ENV.pack("A1", "415D615A", "foo", "bar") == "415D615A")
     assert(_ENV.pack("A2", "415D615A", "foo", "bar") == "415D615Afoo")
+
+    assert(_ENV.pack(">xSSISA",  0x0, 0x0, 0x0, 0x0, "1"))
+    assert(_ENV.pack("x2") == "\x00\x00")
 end
 
 local function unpacker (fixer, status, ...)
